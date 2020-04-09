@@ -1,2 +1,2 @@
 # fingers-in
-A game
+A game.
