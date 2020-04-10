@@ -98,8 +98,14 @@ socket.on('finger-confirmed', function() {
 });
 
 document.getElementById('guess-button').addEventListener('click', function () {
-  var guess = document.getElementById('guess').value;
-  socket.emit('guess', guess);
+  var guess = document.getElementById('guess').value;  
+  if (guess.length > 0) {
+    socket.emit('guess', guess);
+  } else {
+    var textarea = document.getElementById('messages');
+    textarea.value += 'Please enter a guess!\r\n';
+    textarea.scrollTop = textarea.scrollHeight;
+  }
 });
 
 socket.on('guess-confirmed', function() {

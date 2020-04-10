@@ -10,10 +10,13 @@
     .container {
       margin-bottom: 10px;
     }
+    #messages {
+      height: 500px;
+    }
     #start-game, #game, #your-finger, #your-guess {
       display: none;
     }
-    #your-finger {
+    #your-finger, #your-guess {
       margin: auto;
       width: 500px;
     }
@@ -24,10 +27,6 @@
       float: right;
     }
     #your-guess {
-      margin-top: 50px;
-    }
-    #messages {
-      height: 300px;
       margin-top: 50px;
     }
     @media (min-width: 576px) {
@@ -54,6 +53,12 @@
   <div class="container">
     <div class="container">
       <h1>Fingers In!</h1>
+    </div>
+
+    <div class="container">
+      <div class="form-group">
+        <textarea id="messages" class="form-control" disabled></textarea>
+      </div>
     </div>
 
     <div id="join-game">
@@ -92,12 +97,6 @@
           <input id="guess" type="number" class="form-control"/>
         </div>
         <button id="guess-button" type="button" class="btn btn-primary">Confirm</button>
-      </div>
-    </div>
-
-    <div class="container">
-      <div class="form-group">
-        <textarea id="messages" class="form-control" disabled></textarea>
       </div>
     </div>
   </div>

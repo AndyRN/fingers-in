@@ -34,6 +34,7 @@ io.on('connection', function(socket) {
       turn: false,
       finger: null,
       guess: null,
+      skip: false,
       responded: false
     });
 
@@ -133,10 +134,22 @@ io.on('connection', function(socket) {
         player.responded = false;
       });
 
-      var nextPlayer = players[0];
       if (players.length > 1) {
-        if (index < players.length - 1) {
-          nextPlayer = players[index + 1];
+        var nextPlayer;
+        var playerDetermined = false;
+        while (!playerDetermined) {
+          if (index < players.length - 1) {
+            index++;
+          } else {
+            index = 0;
+          }
+          nextPlayer = players[index];
+          if (!nextPlayer.skip) {
+            playerDetermined = true;
+          } else {
+            io.sockets.emit('message', { message: nextPlayer.name + ' is skipping a go for their stupidity' });
+            nextPlayer.skip = false;
+          }
         }
         nextPlayer.turn = true;
         nextPlayer.socket.emit('your-turn');
@@ -163,12 +176,27 @@ io.on('connection', function(socket) {
       io.sockets.emit('message', { message: player.name + ' left the game' });
       var index = players.indexOf(player);  
       players.splice(index, 1);
+      index--;
 
       if (inProgress) {
         if (players.length > 1) {
           var currentPlayer = players.find(player => player.turn);
           if (currentPlayer == null) {
-            currentPlayer = players[index];
+            var playerDetermined = false;
+            while (!playerDetermined) {
+              if (index < players.length - 1) {
+                index++;
+              } else {
+                index = 0;
+              }
+              currentPlayer = players[index];
+              if (!currentPlayer.skip) {
+                playerDetermined = true;
+              } else {
+                io.sockets.emit('message', { message: currentPlayer.name + ' is skipping a go for their stupidity' });
+                currentPlayer.skip = false;
+              }
+            }
             currentPlayer.turn = true;
             currentPlayer.socket.emit('your-turn');
           }
