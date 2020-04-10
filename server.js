@@ -6,15 +6,16 @@ var socketIO = require('socket.io');
 var app = express();
 var server = http.Server(app);
 var io = socketIO(server);
+var port = process.env.PORT || 3000;
 
-app.set('port', 3000);
+app.set('port', port);
 app.use('/static', express.static(__dirname + '/static'));
 app.get('/', function (request, response) {
   response.sendFile(path.join(__dirname, 'index.html'));
 });
 
-server.listen(3000, function () {
-  console.log('Listening...');
+server.listen(port, function () {
+  console.log('Listening on ' + port + '...');
 });
 
 var inProgress = false;
