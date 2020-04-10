@@ -22,10 +22,11 @@ var players = [];
 
 io.on('connection', function(socket) {
   if (inProgress) {
-    socket.emit('message', { message: 'Game in progress', inProgress: true });
+    socket.emit('message', { message: 'Game in progress' });
+    socket.emit('in-progress');
   }
 
-  socket.on('new-player', function(name) {
+  socket.on('join-game', function(name) {
     players.push({
       socket: socket,
       name: name,
@@ -34,27 +35,30 @@ io.on('connection', function(socket) {
       guess: null,
       responded: false
     });
+
     if (inProgress) {
-      console.log(name + ' joined back in');
-      io.sockets.emit('message', { message: name + ' joined back in', joinBack: true });
+      io.sockets.emit('message', { message: name + ' is back in' });
       var currentPlayer = players.find(player => player.turn);
-      io.sockets.emit('turn', { id: currentPlayer.socket.id, message: 'Current turn: ' + currentPlayer.name + '. Players remaining: ' + players.length });
+      io.sockets.emit('current-turn', { message: currentPlayer.name + ' is up. There are ' + players.length + ' players remaining.' });
     } else {
-      console.log(name + ' joined the game');
       io.sockets.emit('message', { message: name + ' joined the game' });
     }
+
+    socket.emit('joined-game', { inProgress: inProgress });
   });
 
-  socket.on('start-the-game', function() {
+  socket.on('start-game', function() {
     var player = players.find(player => player.socket.id === socket.id);
     if (players.length > 1) {
       inProgress = true;
-      io.sockets.emit('message', { message: player.name + ' started the game!', start: true });
-      var selectedPlayer = players[Math.floor(Math.random() * players.length)];
-      selectedPlayer.turn = true;
-      io.sockets.emit('turn', { id: selectedPlayer.socket.id, message: 'Current turn: ' + selectedPlayer.name + '. Players remaining: ' + players.length });
+      io.sockets.emit('message', { message: player.name + ' started the game!' });
+      io.sockets.emit('next-round');
+      var currentPlayer = players[Math.floor(Math.random() * players.length)];
+      currentPlayer.turn = true;
+      currentPlayer.socket.emit('your-turn');
+      io.sockets.emit('current-turn', { message: currentPlayer.name + ' is up. There are ' + players.length + ' players remaining.' });
     } else {
-      socket.emit('message', { message: 'Need more than one player to join to start a new game...' });
+      socket.emit('message', { message: 'Need more than one player to join to start a game...' });
     }
   });
 
@@ -66,6 +70,8 @@ io.on('connection', function(socket) {
     } else {
       socket.emit('message', { message: 'You pulled your finger out...'});
     }
+    socket.emit('finger-confirmed');
+    io.sockets.emit('message', { message: player.name + ' did something with their finger...' });
     determineResponse(player);
     processResults();
   });
@@ -74,41 +80,10 @@ io.on('connection', function(socket) {
     var player = players.find(player => player.socket.id === socket.id);
     player.guess = guess;
     socket.emit('message', { message: 'You think there will be ' + player.guess + ' finger(s) left in...'});
+    socket.emit('guess-confirmed');
+    io.sockets.emit('message', { message: player.name + ' guessed how many fingers will be left in...' });
     determineResponse(player);
     processResults();
-  });
-
-  socket.on('disconnect', function() {
-    var player = players.find(player => player.socket.id === socket.id);
-    if (player) {
-      console.log(player.name + ' left');
-      io.sockets.emit('message', { message: player.name + ' left the game' });
-      var index = players.indexOf(player);      
-      var nextPlayer = players[0];
-      if (player.turn) {
-        if (index < players.length - 1) {
-          nextPlayer = players[index + 1];
-        }
-      }
-      players.splice(index, 1);
-      if (players.length > 1) {
-        var currentPlayer = players.find(player => player.turn);
-        if (currentPlayer != null) {
-          io.sockets.emit('turn', { id: currentPlayer.socket.id, message: 'Current turn: ' + currentPlayer.name + '. Players remaining: ' + players.length });
-          processResults();
-        } else {
-          io.sockets.emit('turn', { id: nextPlayer.socket.id, message: 'Current turn: ' + nextPlayer.name + '. Players remaining: ' + players.length });
-        }
-      } else {
-        if (inProgress) {
-          io.sockets.emit('message', { message: 'Game over' });
-          io.sockets.emit('message', { message: '----------------------------------------' });
-          nextPlayer.socket.emit('end');
-          players = [];
-          inProgress = false;
-        }
-      }
-    }
   });
 
   function determineResponse(player) {
@@ -121,44 +96,87 @@ io.on('connection', function(socket) {
 
   function processResults() {
     if (players.every(player => player.responded)) {
-      var total = 0;
+      var totalFingers = 0;
       players.forEach(player => {
         if (player.finger) {
-          total++;
+          totalFingers++;
         }
       });
-      io.sockets.emit('message', { message: 'There were ' + total + ' finger(s) left in!' });
+
+      io.sockets.emit('message', { message: 'There were ' + totalFingers + ' finger(s) left in!' });
+
       var currentPlayer = players.find(player => player.turn);
       var index = players.indexOf(currentPlayer);
-      if (currentPlayer.guess == total) {
-        io.sockets.emit('message', { message: currentPlayer.name + ' was right!', nextRound: true });
-        currentPlayer.socket.emit('end');
+
+      if (currentPlayer.guess == totalFingers) {
+        io.sockets.emit('message', { message: currentPlayer.name + ' was right!' });
+        currentPlayer.socket.emit('out');
         players.splice(index, 1);
         index--;
+      } else if (currentPlayer.guess > players.length) {
+        io.sockets.emit('message', { message: currentPlayer.name + ' guessed more than there are players, stupid call, skip a go!' });
+        currentPlayer.skip = true;
+      } else if (currentPlayer.guess == 0 && currentPlayer.finger) {
+        io.sockets.emit('message', { message: currentPlayer.name + ' guessed there would be none but left their finger in, stupid call, skip a go!' });
+        currentPlayer.skip = true;
       } else {
-        io.sockets.emit('message', { message: currentPlayer.name + ' was wrong...', nextRound: true });
+        io.sockets.emit('message', { message: currentPlayer.name + ' was wrong...' });
       }
+      
+      io.sockets.emit('next-round');
+
       players.forEach(player => {
         player.turn = false;
         player.finger = null;
         player.guess = null;
         player.responded = false;
       });
+
       var nextPlayer = players[0];
-      if (players.length === 1) {
-        io.sockets.emit('message', { message: 'Game over, ' + nextPlayer.name + ' lost!' });
-        io.sockets.emit('message', { message: '----------------------------------------' });
-        nextPlayer.socket.emit('end');
-        players.splice(index, 1);
-        inProgress = false;
-      } else {
+      if (players.length > 1) {
         if (index < players.length - 1) {
           nextPlayer = players[index + 1];
         }
         nextPlayer.turn = true;
+        nextPlayer.socket.emit('your-turn');
         io.sockets.emit('message', { message: 'Next up is ' + nextPlayer.name });
-        io.sockets.emit('turn', { id: nextPlayer.socket.id, message: 'Current turn: ' + nextPlayer.name + '. Players remaining: ' + players.length });
+        io.sockets.emit('current-turn', { message: nextPlayer.name + ' is up. There are ' + players.length + ' players remaining.' });
+      } else {
+        io.sockets.emit('message', { message: 'The loser is ' + players[0].name });
+        gameOver();
       }
     }
   };
+
+  function gameOver() {
+    io.sockets.emit('message', { message: 'Game over' });
+    io.sockets.emit('message', { message: '----------------------------------------' });
+    io.sockets.emit('game-over');
+    players = [];
+    inProgress = false;
+  }
+
+  socket.on('disconnect', function() {
+    var player = players.find(player => player.socket.id === socket.id);
+    if (player) {
+      io.sockets.emit('message', { message: player.name + ' left the game' });
+      var index = players.indexOf(player);  
+      players.splice(index, 1);
+
+      if (inProgress) {
+        if (players.length > 1) {
+          var currentPlayer = players.find(player => player.turn);
+          if (currentPlayer == null) {
+            currentPlayer = players[index];
+            currentPlayer.turn = true;
+            currentPlayer.socket.emit('your-turn');
+          }
+          io.sockets.emit('current-turn', { message: currentPlayer.name + ' is up. There are ' + players.length + ' players remaining.' });
+          processResults();
+        } else {
+          gameOver();
+        }
+      }
+    }
+  });
 });

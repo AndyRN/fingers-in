@@ -10,7 +10,7 @@
     .container {
       margin-bottom: 10px;
     }
-    #start-the-game, #game, #your-turn {
+    #start-game, #game, #your-finger, #your-guess {
       display: none;
     }
     #your-finger {
@@ -23,7 +23,7 @@
     #finger-out {
       float: right;
     }
-    #your-turn {
+    #your-guess {
       margin-top: 50px;
     }
     #messages {
@@ -55,37 +55,46 @@
     <div class="container">
       <h1>Fingers In!</h1>
     </div>
-    <div class="container" id="new-player">
-      <div class="form-group">
-        <label>Enter name:</label>
-        <input id="name" type="text" class="form-control"/>
+
+    <div id="join-game">
+      <div class="container">
+        <div class="form-group">
+          <label>Enter name:</label>
+          <input id="name" type="text" class="form-control"/>
+        </div>
+        <button id="join-game-button" type="button" class="btn btn-primary">Join</button>
       </div>
-      <button id="confirm-new-player" type="button" class="btn btn-primary">Join</button>
     </div>
-    <div id="start-the-game">
+
+    <div id="start-game">
       <div class="container">
         <div class="form-group">
           <label>When everyone is ready, start the game!</label>
         </div>
-        <button id="confirm-start-the-game" type="button" class="btn btn-warning">Start</button>
+        <button id="start-game-button" type="button" class="btn btn-warning">Start</button>
       </div>
     </div>
+
     <div id="game">
       <div class="container">
-        <label id="turn"></label>
+        <label id="current-turn"></label>
       </div>
       <div class="container" id="your-finger">
+        <div class="form-group">
+          <label>What will you do with your finger?</label>
+        </div>
         <button id="finger-in" type="button" class="btn btn-success btn-lg">In</button>
         <button id="finger-out" type="button" class="btn btn-danger btn-lg">Out</button>
       </div>
-      <div class="container" id="your-turn">
+      <div class="container" id="your-guess">
         <div class="form-group">
-          <label>How many fingers will be left?</label>
+          <label>Guess how many fingers will be left?</label>
           <input id="guess" type="number" class="form-control"/>
         </div>
-        <button id="confirm-guess" type="button" class="btn btn-primary">Confirm</button>
+        <button id="guess-button" type="button" class="btn btn-primary">Confirm</button>
       </div>
     </div>
+
     <div class="container">
       <div class="form-group">
         <textarea id="messages" class="form-control" disabled></textarea>
