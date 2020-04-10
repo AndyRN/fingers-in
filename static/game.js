@@ -3,16 +3,20 @@ var joined = false;
 
 document.getElementById('confirm-new-player').addEventListener('click', function (event) {
   var name = document.getElementById('name').value;
-  socket.emit('new-player', name);
-  document.getElementById('new-player').style.display = 'none';
-  document.getElementById('start-the-game').style.display = 'block';
-  joined = true;
+  if (name.length > 1) {
+    socket.emit('new-player', name);
+    document.getElementById('new-player').style.display = 'none';
+    document.getElementById('start-the-game').style.display = 'block';
+    joined = true;
+  } else {
+    var textarea = document.getElementById('messages');
+    textarea.value += 'Please enter a name!\r\n';
+    textarea.scrollTop = textarea.scrollHeight;
+  }
 });
 
 document.getElementById('confirm-start-the-game').addEventListener('click', function (event) {
   socket.emit('start-the-game');
-  document.getElementById('start-the-game').style.display = 'none';
-  document.getElementById('game').style.display = 'block';
 });
 
 document.getElementById('finger-in').addEventListener('click', function (event) {
@@ -48,8 +52,9 @@ socket.on('message', function(data) {
     }
   } else if (data.inProgress) {
     document.getElementById('new-player').style.display = 'none';
-  } else if (data.restart) {
-    document.getElementById('new-player').style.display = 'block';
+  } else if (data.joinBack) {
+    document.getElementById('start-the-game').style.display = 'none';
+    document.getElementById('game').style.display = 'block';
   }
 });
 
@@ -62,4 +67,6 @@ socket.on('turn', function(data) {
 
 socket.on('end', function() {
   document.getElementById('game').style.display = 'none';
+  document.getElementById('new-player').style.display = 'block';
+  joined = false;
 });
