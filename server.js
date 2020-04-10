@@ -7,13 +7,13 @@ var app = express();
 var server = http.Server(app);
 var io = socketIO(server);
 
-app.set('port', 5000);
+app.set('port', 3000);
 app.use('/static', express.static(__dirname + '/static'));
 app.get('/', function (request, response) {
   response.sendFile(path.join(__dirname, 'index.html'));
 });
 
-server.listen(5000, function () {
+server.listen(3000, function () {
   console.log('Listening...');
 });
 
